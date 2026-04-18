@@ -2,13 +2,13 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type BottomTabParamList = {
   Home: undefined;
-  RoutineList: undefined;
   Report: undefined;
-  My: undefined;
+  Settings: undefined;
 };
 
 export type RootStackParamList = {
   Main: NavigatorScreenParams<BottomTabParamList>;
+  RoutineList: { topicId?: string };
   Play: { routineId: string };
   Done: { routineId: string };
   Premium: undefined;

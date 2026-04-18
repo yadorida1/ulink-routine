@@ -15,8 +15,7 @@ import { mockRoutines } from '../data/mockData';
 import { usePlantProgress } from '../hooks/usePlantProgress';
 import { useRoutines } from '../hooks/useRoutines';
 import { getToday } from '../utils/dateUtils';
-import { PLANT_COMPLETION_MESSAGES } from '../constants';
-import { getPlantEmoji } from '../utils/plantUtils';
+import { getPlantEmoji, getPlantStageLabel } from '../utils/plantUtils';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Done'>;
@@ -28,138 +27,149 @@ export default function DoneScreen() {
 
   const { plant, onRoutineCompleted } = usePlantProgress();
   const { markComplete } = useRoutines();
+  const routine = mockRoutines.find(r => r.id === routineId);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
 
-  const routine = mockRoutines.find(r => r.id === routineId);
   const plantEmoji = getPlantEmoji(plant.stage, plant.state);
-  const completionMessage = PLANT_COMPLETION_MESSAGES[plant.streak % PLANT_COMPLETION_MESSAGES.length];
+  const stageLabel = getPlantStageLabel(plant.stage);
 
   useEffect(() => {
     markComplete(routineId);
     onRoutineCompleted();
 
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Animated.View
-        style={[
-          styles.content,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {/* Plant feedback — calm, not flashy */}
-        <View style={styles.plantSection}>
-          <Text style={styles.plantEmoji}>{plantEmoji}</Text>
-          <Text style={styles.plantMessage}>{completionMessage}</Text>
-          <View style={styles.vitalityRow}>
-            <Text style={styles.vitalityLabel}>활력</Text>
-            <View style={styles.vitalityTrack}>
-              <View style={[styles.vitalityFill, { width: `${plant.vitality}%` }]} />
-            </View>
-            <Text style={styles.vitalityValue}>{plant.vitality}%</Text>
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+
+        {/* Plant illustration */}
+        <View style={styles.plantArea}>
+          <View style={styles.plantCircle}>
+            <Text style={styles.plantEmoji}>{plantEmoji}</Text>
           </View>
         </View>
 
-        {/* Completion info */}
-        <View style={styles.infoSection}>
-          {routine && (
-            <Text style={styles.routineTitle}>{routine.title}</Text>
-          )}
-          <Text style={styles.completedLabel}>완료</Text>
+        {/* Done message */}
+        <View style={styles.messageArea}>
+          <Text style={styles.doneTitle}>잘했어요! 🌱</Text>
+          <Text style={styles.doneSubtitle}>오늘의 루틴을 완료했어요</Text>
+        </View>
 
-          {/* Streak */}
-          <View style={styles.streakCard}>
-            <Text style={styles.streakEmoji}>🔥</Text>
-            <View>
-              <Text style={styles.streakValue}>{plant.streak}일 연속</Text>
-              <Text style={styles.streakSub}>오늘도 루틴을 지켰어요</Text>
-            </View>
+        {/* Plant state card */}
+        <View style={styles.plantStateCard}>
+          <Text style={styles.plantStateLabel}>식물 상태</Text>
+          <View style={styles.plantStateRow}>
+            <Text style={styles.plantStageName}>{stageLabel} 단계</Text>
+            <Text style={styles.plantStreakDot}>•</Text>
+            <Text style={styles.plantStreakText}>{plant.streak}일째</Text>
+          </View>
+          {/* Vitality bar */}
+          <View style={styles.vitalityTrack}>
+            <View style={[styles.vitalityFill, { width: `${plant.vitality}%` }]} />
           </View>
         </View>
 
-        {/* CTAs */}
+        {/* Actions */}
         <View style={styles.actions}>
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={styles.reportBtn}
             onPress={() => navigation.navigate('Main', { screen: 'Report' } as never)}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>리포트 보기</Text>
+            <Text style={styles.reportBtnText}>리포트 보기</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.secondaryBtn}
+            style={styles.homeBtn}
             onPress={() => navigation.navigate('Main', { screen: 'Home' } as never)}
             activeOpacity={0.75}
           >
-            <Text style={styles.secondaryBtnText}>홈으로 돌아가기</Text>
+            <Text style={styles.homeBtnText}>홈으로 돌아가기</Text>
           </TouchableOpacity>
         </View>
+
       </Animated.View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  safe: { flex: 1, backgroundColor: Colors.background },
   content: {
     flex: 1,
-    padding: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
     justifyContent: 'center',
-    gap: Spacing.xxl,
+    gap: Spacing.xl,
   },
-  plantSection: {
+
+  /* Plant */
+  plantArea: { alignItems: 'center' },
+  plantCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: Colors.primary100,
     alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.mutedFill,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primary200,
   },
-  plantEmoji: {
-    fontSize: 56,
-  },
-  plantMessage: {
-    ...Typography.body1,
+  plantEmoji: { fontSize: 64 },
+
+  /* Message */
+  messageArea: { alignItems: 'center', gap: Spacing.sm },
+  doneTitle: {
+    ...Typography.title1,
     color: Colors.textPrimary,
     textAlign: 'center',
   },
-  vitalityRow: {
+  doneSubtitle: {
+    ...Typography.body2,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  /* Plant state card */
+  plantStateCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.sm,
+  },
+  plantStateLabel: {
+    ...Typography.caption1,
+    color: Colors.textSecondary,
+  },
+  plantStateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    width: '100%',
-    paddingTop: Spacing.sm,
   },
-  vitalityLabel: {
-    ...Typography.caption1,
-    color: Colors.textSecondary,
-    width: 28,
+  plantStageName: {
+    ...Typography.body1,
+    color: Colors.textPrimary,
+  },
+  plantStreakDot: {
+    ...Typography.body2,
+    color: Colors.textTertiary,
+  },
+  plantStreakText: {
+    ...Typography.body2,
+    color: Colors.primary600,
   },
   vitalityTrack: {
-    flex: 1,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.primary100,
     overflow: 'hidden',
   },
   vitalityFill: {
@@ -167,66 +177,23 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: Colors.primary500,
   },
-  vitalityValue: {
-    ...Typography.caption1,
-    color: Colors.primary600,
-    width: 32,
-    textAlign: 'right',
-  },
-  infoSection: {
-    alignItems: 'center',
-    gap: Spacing.base,
-  },
-  routineTitle: {
-    ...Typography.body2,
-    color: Colors.textSecondary,
-  },
-  completedLabel: {
-    ...Typography.title1,
-    color: Colors.textPrimary,
-  },
-  streakCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    width: '100%',
-  },
-  streakEmoji: {
-    fontSize: 24,
-  },
-  streakValue: {
-    ...Typography.body1,
-    color: Colors.textPrimary,
-  },
-  streakSub: {
-    ...Typography.caption2,
-    color: Colors.textSecondary,
-  },
-  actions: {
-    gap: Spacing.sm,
-  },
-  primaryBtn: {
+
+  /* Actions */
+  actions: { gap: Spacing.sm },
+  reportBtn: {
     height: ButtonHeight.primary,
     backgroundColor: Colors.primary600,
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryBtnText: {
-    ...Typography.body1,
-    color: Colors.textInverse,
-  },
-  secondaryBtn: {
+  reportBtnText: { ...Typography.body1, color: Colors.textInverse },
+  homeBtn: {
     height: ButtonHeight.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryBtnText: {
+  homeBtnText: {
     ...Typography.body2,
     color: Colors.textSecondary,
     textDecorationLine: 'underline',

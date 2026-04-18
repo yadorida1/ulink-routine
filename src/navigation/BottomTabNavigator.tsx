@@ -4,30 +4,22 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabParamList } from './types';
 import HomeScreen from '../screens/HomeScreen';
-import RoutineListScreen from '../screens/RoutineListScreen';
 import ReportScreen from '../screens/ReportScreen';
-import MyScreen from '../screens/MyScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import { Colors, Typography } from '../theme';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
-const TAB_ITEMS: {
-  name: keyof BottomTabParamList;
-  label: string;
-  emoji: string;
-  activeEmoji: string;
-}[] = [
-  { name: 'Home', label: '홈', emoji: '○', activeEmoji: '●' },
-  { name: 'RoutineList', label: '루틴', emoji: '☰', activeEmoji: '☰' },
-  { name: 'Report', label: '리포트', emoji: '◫', activeEmoji: '◫' },
-  { name: 'My', label: '내 정보', emoji: '◯', activeEmoji: '◉' },
+const TABS: { name: keyof BottomTabParamList; label: string; icon: string; iconActive: string }[] = [
+  { name: 'Home',     label: '홈',    icon: '⌂',  iconActive: '⌂'  },
+  { name: 'Report',   label: '리포트', icon: '▦',  iconActive: '▦'  },
+  { name: 'Settings', label: '설정',  icon: '⚙',  iconActive: '⚙'  },
 ];
 
 const SCREEN_MAP = {
   Home: HomeScreen,
-  RoutineList: RoutineListScreen,
   Report: ReportScreen,
-  My: MyScreen,
+  Settings: SettingsScreen,
 } as const;
 
 export default function BottomTabNavigator() {
@@ -44,7 +36,7 @@ export default function BottomTabNavigator() {
         ],
       }}
     >
-      {TAB_ITEMS.map(({ name, label, emoji, activeEmoji }) => (
+      {TABS.map(({ name, label, icon, iconActive }) => (
         <Tab.Screen
           key={name}
           name={name}
@@ -52,20 +44,10 @@ export default function BottomTabNavigator() {
           options={{
             tabBarIcon: ({ focused }) => (
               <View style={styles.tabIcon}>
-                <Text
-                  style={[
-                    styles.tabSymbol,
-                    { color: focused ? Colors.primary600 : Colors.textTertiary },
-                  ]}
-                >
-                  {focused ? activeEmoji : emoji}
+                <Text style={[styles.tabSymbol, { color: focused ? Colors.primary600 : Colors.textTertiary }]}>
+                  {focused ? iconActive : icon}
                 </Text>
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    { color: focused ? Colors.primary600 : Colors.textTertiary },
-                  ]}
-                >
+                <Text style={[styles.tabLabel, { color: focused ? Colors.primary600 : Colors.textTertiary }]}>
                   {label}
                 </Text>
               </View>
@@ -94,8 +76,8 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   tabSymbol: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 22,
   },
   tabLabel: {
     ...Typography.caption2,

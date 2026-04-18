@@ -9,21 +9,21 @@ import {
 
 export const mockTopics: Topic[] = [
   {
-    id: 'topic_morning',
-    name: '모닝 루틴',
-    description: '하루를 상쾌하게 시작하는 아침 루틴',
+    id: 'topic_exercise',
+    name: '운동 루틴',
+    description: '매일 꾸준히 하는 운동 습관 만들기',
     isPremiumOnly: false,
     isLocked: false,
-    iconEmoji: '🌅',
+    iconEmoji: '💪',
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'topic_exercise',
-    name: '운동 루틴',
-    description: '규칙적인 운동 습관 만들기',
+    id: 'topic_morning',
+    name: '모닝 루틴',
+    description: '하루를 상쾌하게 시작하는 아침 루틴',
     isPremiumOnly: true,
     isLocked: true,
-    iconEmoji: '💪',
+    iconEmoji: '🌅',
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
@@ -37,80 +37,101 @@ export const mockTopics: Topic[] = [
   },
 ];
 
+// One routine per weekday for the active topic
 export const mockRoutines: Routine[] = [
   {
-    id: 'routine_001',
-    topicId: 'topic_morning',
-    title: '5분 스트레칭',
-    description: '하루를 시작하는 부드러운 스트레칭으로 몸을 깨워요',
+    id: 'routine_mon',
+    topicId: 'topic_exercise',
+    title: '전신 스트레칭',
+    description: '부드럽게 몸을 풀어볼까요?',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    durationMin: 5,
+    durationMin: 20,
     difficulty: 'easy',
-    scheduledDays: [1, 2, 3, 4, 5],
+    scheduledDays: [1], // Monday
     isActive: true,
     order: 1,
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'routine_002',
-    topicId: 'topic_morning',
-    title: '명상 & 호흡',
-    description: '10분 집중 명상으로 하루를 차분하게 준비해요',
+    id: 'routine_tue',
+    topicId: 'topic_exercise',
+    title: '하체 운동',
+    description: '스쿼트와 런지로 하체를 강화해요',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    durationMin: 10,
-    difficulty: 'easy',
-    scheduledDays: [1, 2, 3, 4, 5, 6, 0],
+    durationMin: 20,
+    difficulty: 'medium',
+    scheduledDays: [2], // Tuesday
     isActive: true,
     order: 2,
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'routine_003',
-    topicId: 'topic_morning',
-    title: '긍정 확언 읽기',
-    description: '오늘 하루를 위한 긍정적인 말들로 시작해요',
+    id: 'routine_wed',
+    topicId: 'topic_exercise',
+    title: '코어 운동',
+    description: '플랭크와 크런치로 코어를 단련해요',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    durationMin: 3,
-    difficulty: 'easy',
-    scheduledDays: [1, 2, 3, 4, 5],
+    durationMin: 20,
+    difficulty: 'medium',
+    scheduledDays: [3], // Wednesday
     isActive: true,
     order: 3,
     createdAt: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'routine_004',
-    topicId: 'topic_morning',
-    title: '물 한 잔 & 비타민',
-    description: '아침에 물 한 잔으로 몸을 깨우세요',
-    durationMin: 2,
-    difficulty: 'easy',
-    scheduledDays: [1, 2, 3, 4, 5, 6, 0],
+    id: 'routine_thu',
+    topicId: 'topic_exercise',
+    title: '상체 운동',
+    description: '푸시업과 덤벨로 상체를 키워요',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    durationMin: 20,
+    difficulty: 'medium',
+    scheduledDays: [4], // Thursday
     isActive: true,
     order: 4,
     createdAt: '2024-01-01T00:00:00Z',
   },
+  {
+    id: 'routine_fri',
+    topicId: 'topic_exercise',
+    title: '전신 유산소',
+    description: '점프잭과 버피로 심폐를 강화해요',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    durationMin: 20,
+    difficulty: 'hard',
+    scheduledDays: [5], // Friday
+    isActive: true,
+    order: 5,
+    createdAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'routine_sat',
+    topicId: 'topic_exercise',
+    title: '가벼운 스트레칭',
+    description: '한 주를 마무리하는 가벼운 스트레칭',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    durationMin: 10,
+    difficulty: 'easy',
+    scheduledDays: [6], // Saturday
+    isActive: true,
+    order: 6,
+    createdAt: '2024-01-01T00:00:00Z',
+  },
 ];
 
-// Mock progress for the past week (relative to a static reference date for demo)
 export const mockRoutineProgress: RoutineProgress[] = [
-  { id: 'prog_001', routineId: 'routine_001', date: '2024-04-15', completed: true, completedAt: '2024-04-15T07:10:00Z' },
-  { id: 'prog_002', routineId: 'routine_002', date: '2024-04-15', completed: true, completedAt: '2024-04-15T07:22:00Z' },
-  { id: 'prog_003', routineId: 'routine_003', date: '2024-04-15', completed: true, completedAt: '2024-04-15T07:30:00Z' },
-  { id: 'prog_004', routineId: 'routine_001', date: '2024-04-16', completed: true, completedAt: '2024-04-16T07:05:00Z' },
-  { id: 'prog_005', routineId: 'routine_002', date: '2024-04-16', completed: false },
-  { id: 'prog_006', routineId: 'routine_001', date: '2024-04-17', completed: true, completedAt: '2024-04-17T07:30:00Z' },
-  { id: 'prog_007', routineId: 'routine_002', date: '2024-04-17', completed: true, completedAt: '2024-04-17T07:45:00Z' },
-  { id: 'prog_008', routineId: 'routine_003', date: '2024-04-17', completed: false },
+  { id: 'p1', routineId: 'routine_mon', date: '2024-06-24', completed: true, completedAt: '2024-06-24T07:30:00Z' },
+  { id: 'p2', routineId: 'routine_wed', date: '2024-06-26', completed: true, completedAt: '2024-06-26T07:30:00Z' },
 ];
 
 export const mockPlantProgress: PlantProgress = {
   level: 35,
   vitality: 78,
   streak: 3,
-  daysCompletedInCycle: 5,
+  daysCompletedInCycle: 12, // 12 / 30일
   stage: 'sprout',
   state: 'healthy',
-  lastUpdated: '2024-04-17',
+  lastUpdated: '2024-06-26',
 };
 
 export const mockUserState: UserState = {
@@ -121,30 +142,33 @@ export const mockUserState: UserState = {
 
 export const mockRecommendedPackages: RecommendedPackage[] = [
   {
-    id: 'pkg_morning_yoga',
-    title: '모닝 요가 루틴',
-    description: '전문가가 설계한 15분 아침 요가',
+    id: 'pkg_sleep',
+    title: '숙면 루틴',
+    description: '깊은 잠을 위한 저녁 루틴',
     durationMin: 15,
-    routineCount: 5,
-    isPremium: true,
-    emoji: '🧘',
-  },
-  {
-    id: 'pkg_focus_study',
-    title: '집중력 향상 학습',
-    description: '포모도로 기법으로 효율적인 학습',
-    durationMin: 25,
     routineCount: 4,
-    isPremium: true,
-    emoji: '🎯',
-  },
-  {
-    id: 'pkg_evening_wind',
-    title: '저녁 마무리 루틴',
-    description: '하루를 차분하게 마무리하는 루틴',
-    durationMin: 10,
-    routineCount: 3,
     isPremium: true,
     emoji: '🌙',
   },
+  {
+    id: 'pkg_reading',
+    title: '독서 루틴',
+    description: '매일 30분 독서 습관 만들기',
+    durationMin: 30,
+    routineCount: 3,
+    isPremium: true,
+    emoji: '📖',
+  },
+  {
+    id: 'pkg_mindfulness',
+    title: '마음 챙김',
+    description: '명상과 호흡으로 마음을 정리해요',
+    durationMin: 10,
+    routineCount: 5,
+    isPremium: true,
+    emoji: '🍃',
+  },
 ];
+
+export const ACTIVE_TOPIC_ID = 'topic_exercise';
+export const MONTHLY_TARGET_DAYS = 30;

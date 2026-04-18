@@ -15,38 +15,16 @@ import { signInWithApple, signInWithGoogle } from '../services/firebase/auth';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'LoginPromptSheet'>;
 
-const TRIGGER_COPY: Record<string, { title: string; body: string }> = {
-  addTopic: {
-    title: '로그인이 필요해요',
-    body: '토픽을 추가하려면 먼저 로그인해 주세요.\n로그인하면 루틴 기록도 안전하게 보관돼요.',
-  },
-  progress: {
-    title: '기록을 저장하세요',
-    body: '지금까지의 루틴 기록을\n로그인하면 언제든 다시 불러올 수 있어요.',
-  },
-  general: {
-    title: '계속하려면 로그인하세요',
-    body: '로그인하면 모든 기기에서\n루틴을 이어갈 수 있어요.',
-  },
-};
-
 export default function LoginPromptSheet() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProps>();
-  const trigger = route.params?.trigger ?? 'general';
-
   const [loading, setLoading] = useState<'apple' | 'google' | null>(null);
-  const copy = TRIGGER_COPY[trigger] ?? TRIGGER_COPY.general;
 
   const handleApple = async () => {
     setLoading('apple');
     try {
       const result = await signInWithApple();
-      if (result.success) {
-        navigation.goBack();
-        // INTEGRATION POINT: call useUserState.signIn(result.userId!, result.displayName, result.email)
-        // This requires lifting state or using a context/store
-      }
+      if (result.success) navigation.goBack();
     } finally {
       setLoading(null);
     }
@@ -56,9 +34,7 @@ export default function LoginPromptSheet() {
     setLoading('google');
     try {
       const result = await signInWithGoogle();
-      if (result.success) {
-        navigation.goBack();
-      }
+      if (result.success) navigation.goBack();
     } finally {
       setLoading(null);
     }
@@ -66,31 +42,33 @@ export default function LoginPromptSheet() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Drag handle */}
+      {/* Handle */}
       <View style={styles.handleRow}>
         <View style={styles.handle} />
       </View>
 
       <View style={styles.content}>
-        {/* Icon */}
-        <View style={styles.iconWrapper}>
-          <Text style={styles.icon}>🌿</Text>
+        {/* Plant illustration */}
+        <View style={styles.plantWrap}>
+          <Text style={styles.plantEmoji}>🌱</Text>
         </View>
 
         {/* Copy */}
         <View style={styles.copySection}>
-          <Text style={styles.title}>{copy.title}</Text>
-          <Text style={styles.body}>{copy.body}</Text>
+          <Text style={styles.title}>루틴을 저장하고{'\n'}이어서 사용해보세요</Text>
+          <Text style={styles.body}>
+            로그인하면 식물 성장과 기록이 안전하게 저장되고{'\n'}
+            모든 기기에서 이어서 사용할 수 있어요.
+          </Text>
         </View>
 
         {/* Sign in buttons */}
         <View style={styles.buttons}>
-          {/* Apple Sign In */}
           <TouchableOpacity
-            style={[styles.appleBtn, loading === 'apple' && styles.btnLoading]}
+            style={[styles.appleBtn, loading === 'apple' && styles.btnDimmed]}
             onPress={handleApple}
             disabled={loading !== null}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
           >
             <Text style={styles.appleBtnIcon}></Text>
             <Text style={styles.appleBtnText}>
@@ -98,12 +76,11 @@ export default function LoginPromptSheet() {
             </Text>
           </TouchableOpacity>
 
-          {/* Google Sign In */}
           <TouchableOpacity
-            style={[styles.googleBtn, loading === 'google' && styles.btnLoading]}
+            style={[styles.googleBtn, loading === 'google' && styles.btnDimmed]}
             onPress={handleGoogle}
             disabled={loading !== null}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
           >
             <Text style={styles.googleBtnIcon}>G</Text>
             <Text style={styles.googleBtnText}>
@@ -113,11 +90,7 @@ export default function LoginPromptSheet() {
         </View>
 
         {/* Later */}
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.laterBtn}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Text style={styles.laterText}>나중에 할게요</Text>
         </TouchableOpacity>
       </View>
@@ -126,31 +99,23 @@ export default function LoginPromptSheet() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-  },
-  handleRow: {
-    alignItems: 'center',
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-  },
+  safe: { flex: 1, backgroundColor: Colors.surface },
+  handleRow: { alignItems: 'center', paddingTop: Spacing.md, paddingBottom: Spacing.xs },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border },
+
   content: {
     flex: 1,
-    padding: Spacing.xl,
-    gap: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.xl,
+    paddingBottom: Spacing.xxl,
   },
-  iconWrapper: {
-    width: 72,
-    height: 72,
+
+  /* Plant */
+  plantWrap: {
+    width: 88,
+    height: 88,
     borderRadius: Radius.xl,
     backgroundColor: Colors.primary100,
     alignItems: 'center',
@@ -158,12 +123,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary200,
   },
-  icon: { fontSize: 32 },
+  plantEmoji: { fontSize: 40 },
+
+  /* Copy */
   copySection: { alignItems: 'center', gap: Spacing.sm },
   title: {
-    ...Typography.heading,
+    ...Typography.title2,
     color: Colors.textPrimary,
     textAlign: 'center',
+    lineHeight: 34,
   },
   body: {
     ...Typography.body2,
@@ -171,10 +139,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  buttons: {
-    width: '100%',
-    gap: Spacing.sm,
-  },
+
+  /* Buttons */
+  buttons: { width: '100%', gap: Spacing.sm },
   appleBtn: {
     height: ButtonHeight.primary,
     backgroundColor: '#000000',
@@ -184,14 +151,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  appleBtnIcon: {
-    fontSize: 18,
-    color: '#FFFFFF',
-  },
-  appleBtnText: {
-    ...Typography.body1,
-    color: '#FFFFFF',
-  },
+  appleBtnIcon: { fontSize: 18, color: '#FFFFFF' },
+  appleBtnText: { ...Typography.body1, color: '#FFFFFF' },
+
   googleBtn: {
     height: ButtonHeight.primary,
     backgroundColor: Colors.surface,
@@ -203,22 +165,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  googleBtnIcon: {
-    fontSize: 18,
-    color: '#4285F4',
-    fontWeight: '700',
-  },
-  googleBtnText: {
-    ...Typography.body1,
-    color: Colors.textPrimary,
-  },
-  btnLoading: {
-    opacity: 0.6,
-  },
-  laterBtn: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-  },
+  googleBtnIcon: { fontSize: 18, color: '#4285F4', fontWeight: '700' },
+  googleBtnText: { ...Typography.body1, color: Colors.textPrimary },
+
+  btnDimmed: { opacity: 0.55 },
+
+  /* Later */
   laterText: {
     ...Typography.body2,
     color: Colors.textSecondary,

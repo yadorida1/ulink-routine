@@ -14,41 +14,36 @@ import { Colors, Typography, Spacing, Radius } from '../theme';
 import { useRoutines } from '../hooks/useRoutines';
 import { usePlantProgress } from '../hooks/usePlantProgress';
 import { useUserState } from '../hooks/useUserState';
-import { getGreeting } from '../utils/dateUtils';
-import { mockRecommendedPackages } from '../data/mockData';
-import PlantStatusCard from '../components/PlantStatusCard';
-import RoutineCard from '../components/RoutineCard';
+import { getGreeting, getToday } from '../utils/dateUtils';
+import { getPlantEmoji, getPlantStageLabel } from '../utils/plantUtils';
+import {
+  mockTopics,
+  mockRecommendedPackages,
+  ACTIVE_TOPIC_ID,
+  MONTHLY_TARGET_DAYS,
+} from '../data/mockData';
 import LoginBanner from '../components/LoginBanner';
-import SectionTitle from '../components/SectionTitle';
-import Badge from '../components/Badge';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { plant } = usePlantProgress();
-  const { todayRoutines, isRoutineCompleted } = useRoutines();
+  const { todayRoutines, isRoutineCompleted } = useRoutines(ACTIVE_TOPIC_ID);
   const { userState, isGuest, canAddTopic } = useUserState();
-  const [loginBannerDismissed, setLoginBannerDismissed] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  const greeting = getGreeting();
-  const displayName = userState.displayName ?? '사용자';
-  const completedCount = todayRoutines.filter(r =>
-    isRoutineCompleted(r.id, new Date().toISOString().slice(0, 10)),
-  ).length;
+  const activeTopic = mockTopics.find(t => t.id === ACTIVE_TOPIC_ID);
+  const todayRoutine = todayRoutines[0] ?? null;
+  const isCompleted = todayRoutine ? isRoutineCompleted(todayRoutine.id, getToday()) : false;
+  const plantEmoji = getPlantEmoji(plant.stage, plant.state);
+  const stageLabel = getPlantStageLabel(plant.stage);
+  const progressPct = plant.daysCompletedInCycle / MONTHLY_TARGET_DAYS;
 
   const handleAddTopic = () => {
     const action = canAddTopic();
-    if (action === 'needs_login') {
-      navigation.navigate('LoginPromptSheet', { trigger: 'addTopic' });
-    } else if (action === 'needs_premium') {
-      navigation.navigate('Premium');
-    }
-    // 'allowed' → navigate to topic creation (future screen)
-  };
-
-  const handleRoutinePress = (routineId: string) => {
-    navigation.navigate('Play', { routineId });
+    if (action === 'needs_login') navigation.navigate('LoginPromptSheet', { trigger: 'addTopic' });
+    else if (action === 'needs_premium') navigation.navigate('Premium');
   };
 
   return (
@@ -60,212 +55,281 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{greeting}</Text>
-            <Text style={styles.name}>
-              {isGuest ? '오늘도 루틴을 시작해요' : `${displayName}님, 오늘도 화이팅`}
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>
+              {isGuest ? '안녕하세요,' : `안녕하세요, ${userState.displayName ?? ''}님`}
+            </Text>
+            {isGuest && (
+              <View style={styles.guestBadge}>
+                <Text style={styles.guestBadgeText}>게스트</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <Text style={styles.titleLine1}>오늘도,</Text>
+        <Text style={styles.titleLine2}>나를 연결하는 시간</Text>
+
+        {/* Main routine + plant card */}
+        <TouchableOpacity
+          style={styles.mainCard}
+          onPress={() => navigation.navigate('RoutineList', { topicId: ACTIVE_TOPIC_ID })}
+          activeOpacity={0.9}
+        >
+          {/* Top: topic + routine info */}
+          <View style={styles.mainCardTop}>
+            <View style={styles.mainCardInfo}>
+              <Text style={styles.topicLabel}>{activeTopic?.name ?? '루틴'}</Text>
+              <Text style={styles.routineTitle} numberOfLines={1}>
+                {todayRoutine ? todayRoutine.title : '오늘 루틴 없음'}
+              </Text>
+            </View>
+            {/* Plant illustration area */}
+            <View style={styles.plantIllustration}>
+              <Text style={styles.plantEmoji}>{plantEmoji}</Text>
+            </View>
+          </View>
+
+          {/* Streak badge */}
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakBadgeText}>성장 {plant.streak}일째</Text>
+          </View>
+
+          {/* Water / progress gauge */}
+          <View style={styles.waterGauge}>
+            <Text style={styles.waterIcon}>💧</Text>
+            <View style={styles.waterBarTrack}>
+              <View style={[styles.waterBarFill, { width: `${progressPct * 100}%` }]} />
+            </View>
+            <Text style={styles.waterCount}>
+              {plant.daysCompletedInCycle} / {MONTHLY_TARGET_DAYS}일
             </Text>
           </View>
-          {isGuest && (
-            <Badge label="게스트" variant="muted" />
-          )}
-        </View>
 
-        {/* Plant status */}
-        <View style={styles.section}>
-          <PlantStatusCard plant={plant} />
-        </View>
-
-        {/* Today's routines */}
-        <View style={styles.section}>
-          <SectionTitle
-            title="오늘의 루틴"
-            actionLabel="전체 보기"
-            onAction={() => navigation.navigate('Main', { screen: 'RoutineList' } as never)}
-          />
-          {todayRoutines.length > 0 ? (
-            <>
-              <View style={styles.progressSummary}>
-                <Text style={styles.progressText}>
-                  {completedCount}/{todayRoutines.length}개 완료
-                </Text>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${todayRoutines.length > 0 ? (completedCount / todayRoutines.length) * 100 : 0}%`,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-              {todayRoutines.map(routine => (
-                <RoutineCard
-                  key={routine.id}
-                  routine={routine}
-                  isCompleted={isRoutineCompleted(
-                    routine.id,
-                    new Date().toISOString().slice(0, 10),
-                  )}
-                  onPress={() => handleRoutinePress(routine.id)}
-                />
-              ))}
-            </>
-          ) : (
-            <View style={styles.emptyRoutine}>
-              <Text style={styles.emptyRoutineText}>오늘 예정된 루틴이 없어요</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Add topic CTA */}
-        <TouchableOpacity style={styles.addTopicCard} onPress={handleAddTopic} activeOpacity={0.85}>
-          <View style={styles.addTopicLeft}>
-            <Text style={styles.addTopicIcon}>＋</Text>
+          {/* Plant state footer */}
+          <View style={styles.mainCardFooter}>
             <View>
-              <Text style={styles.addTopicTitle}>새 토픽 추가</Text>
-              <Text style={styles.addTopicSub}>다른 영역의 루틴도 관리해요</Text>
+              <Text style={styles.plantStateLabel}>식물 상태</Text>
+              <Text style={styles.plantStateName}>{stageLabel} 단계</Text>
             </View>
+            <Text style={styles.detailLink}>자세히 보기  {'>'}</Text>
           </View>
-          {!isGuest && userState.subscriptionStatus === 'free' && (
-            <Badge label="프리미엄" variant="primary" />
-          )}
+        </TouchableOpacity>
+
+        {/* Add topic card */}
+        <TouchableOpacity style={styles.addTopicCard} onPress={handleAddTopic} activeOpacity={0.85}>
+          <Text style={styles.addTopicPlus}>＋</Text>
+          <View>
+            <Text style={styles.addTopicTitle}>주제 추가</Text>
+            <Text style={styles.addTopicSub}>새로운 루틴을 시작해보세요</Text>
+          </View>
         </TouchableOpacity>
 
         {/* Recommended packages */}
-        <View style={styles.section}>
-          <SectionTitle
-            title="추천 루틴 패키지"
-            actionLabel="더 보기"
-            onAction={() => navigation.navigate('Premium')}
-          />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.packageScroll}
-          >
-            {mockRecommendedPackages.map(pkg => (
-              <TouchableOpacity
-                key={pkg.id}
-                style={styles.packageCard}
-                onPress={() => navigation.navigate('Premium')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.packageEmoji}>{pkg.emoji}</Text>
-                <Text style={styles.packageTitle}>{pkg.title}</Text>
-                <Text style={styles.packageDesc} numberOfLines={2}>{pkg.description}</Text>
-                <View style={styles.packageMeta}>
-                  <Text style={styles.packageDuration}>{pkg.durationMin}분</Text>
-                  <Badge label="프리미엄" variant="primary" />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>추천 루틴 패키지</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Premium')} activeOpacity={0.7}>
+            <Text style={styles.sectionAction}>전체보기  {'>'}</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Login banner (for guests who haven't dismissed it) */}
-        {isGuest && !loginBannerDismissed && (
-          <View style={styles.section}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.packageRow}
+        >
+          {mockRecommendedPackages.map(pkg => (
+            <TouchableOpacity
+              key={pkg.id}
+              style={styles.packageCard}
+              onPress={() => navigation.navigate('Premium')}
+              activeOpacity={0.85}
+            >
+              <View style={styles.packageIconWrap}>
+                <Text style={styles.packageIcon}>{pkg.emoji}</Text>
+              </View>
+              <Text style={styles.packageTitle}>{pkg.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Login banner */}
+        {isGuest && !bannerDismissed && (
+          <View style={styles.bannerWrap}>
             <LoginBanner
               onPress={() => navigation.navigate('LoginPromptSheet', { trigger: 'progress' })}
-              onDismiss={() => setLoginBannerDismissed(true)}
+              onDismiss={() => setBannerDismissed(true)}
             />
           </View>
         )}
 
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: Spacing.xxl }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: Spacing.base,
-    paddingTop: Spacing.xl,
-  },
+  safe: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: Spacing.base, paddingTop: Spacing.xl },
+
+  /* Header */
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.xl,
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
   },
-  greeting: {
-    ...Typography.caption1,
-    color: Colors.textSecondary,
-    marginBottom: 3,
-  },
-  name: {
-    ...Typography.title2,
-    color: Colors.textPrimary,
-  },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  progressSummary: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
-  progressText: {
-    ...Typography.caption1,
-    color: Colors.textSecondary,
-    width: 60,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: Colors.primary500,
-  },
-  emptyRoutine: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  emptyRoutineText: {
+  greeting: {
     ...Typography.body2,
     color: Colors.textSecondary,
   },
+  guestBadge: {
+    backgroundColor: Colors.mutedFill,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  guestBadgeText: {
+    ...Typography.caption2,
+    color: Colors.textSecondary,
+  },
+
+  /* Title */
+  titleLine1: {
+    ...Typography.title1,
+    color: Colors.textPrimary,
+    marginTop: 2,
+  },
+  titleLine2: {
+    ...Typography.title1,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xl,
+  },
+
+  /* Main card */
+  mainCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.base,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  mainCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  mainCardInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  topicLabel: {
+    ...Typography.caption1,
+    color: Colors.primary600,
+  },
+  routineTitle: {
+    ...Typography.heading,
+    color: Colors.textPrimary,
+  },
+  plantIllustration: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plantEmoji: {
+    fontSize: 52,
+  },
+
+  /* Streak badge */
+  streakBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primary600,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  streakBadgeText: {
+    ...Typography.caption1,
+    color: Colors.textInverse,
+  },
+
+  /* Water gauge */
+  waterGauge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  waterIcon: { fontSize: 14 },
+  waterBarTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary100,
+    overflow: 'hidden',
+  },
+  waterBarFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: Colors.primary500,
+  },
+  waterCount: {
+    ...Typography.caption1,
+    color: Colors.textSecondary,
+    minWidth: 52,
+    textAlign: 'right',
+  },
+
+  /* Card footer */
+  mainCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  plantStateLabel: {
+    ...Typography.caption2,
+    color: Colors.textTertiary,
+    marginBottom: 2,
+  },
+  plantStateName: {
+    ...Typography.caption1,
+    color: Colors.textPrimary,
+  },
+  detailLink: {
+    ...Typography.caption1,
+    color: Colors.primary600,
+  },
+
+  /* Add topic card */
   addTopicCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.base,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderStyle: 'dashed',
     marginBottom: Spacing.xl,
   },
-  addTopicLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  addTopicIcon: {
-    fontSize: 20,
-    color: Colors.primary500,
-    width: 36,
+  addTopicPlus: {
+    fontSize: 22,
+    color: Colors.textTertiary,
+    width: 32,
     textAlign: 'center',
   },
   addTopicTitle: {
@@ -275,42 +339,53 @@ const styles = StyleSheet.create({
   addTopicSub: {
     ...Typography.caption2,
     color: Colors.textSecondary,
+    marginTop: 2,
   },
-  packageScroll: {
-    gap: Spacing.md,
-    paddingRight: Spacing.base,
+
+  /* Section header */
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
-  packageCard: {
-    width: 180,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: Spacing.sm,
-  },
-  packageEmoji: {
-    fontSize: 28,
-  },
-  packageTitle: {
+  sectionTitle: {
     ...Typography.body1,
     color: Colors.textPrimary,
   },
-  packageDesc: {
-    ...Typography.caption2,
-    color: Colors.textSecondary,
-  },
-  packageMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-  },
-  packageDuration: {
+  sectionAction: {
     ...Typography.caption1,
-    color: Colors.textSecondary,
+    color: Colors.primary600,
   },
-  bottomSpacer: {
-    height: Spacing.xxl,
+
+  /* Package cards */
+  packageRow: {
+    gap: Spacing.md,
+    paddingRight: Spacing.base,
+    marginBottom: Spacing.xl,
   },
+  packageCard: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    width: 90,
+  },
+  packageIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.primary100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary200,
+  },
+  packageIcon: { fontSize: 30 },
+  packageTitle: {
+    ...Typography.caption1,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+
+  /* Login banner */
+  bannerWrap: { marginBottom: Spacing.base },
 });
