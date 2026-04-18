@@ -27,9 +27,7 @@
     "web": {
       "favicon": "./src/assets/favicon.png"
     },
-    "plugins": [
-      "expo-linking"
-    ],
+    "plugins": [],
     "scheme": "ulink-routine",
     "extra": {
       "eas": {
