@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "ULink Routine",
+    "slug": "ulink-routine",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./src/assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F7FAF9"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ulink.routine",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "backgroundColor": "#F7FAF9"
+      },
+      "package": "com.ulink.routine",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./src/assets/favicon.png"
+    },
+    "plugins": [
+      "expo-linking"
+    ],
+    "scheme": "ulink-routine",
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
