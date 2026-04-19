@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,11 +19,11 @@ import {
   formatWeekRangeKo,
   formatDate,
   isToday,
-  getDayOfWeekKo,
 } from '../utils/dateUtils';
 import { getPlantEmoji, getPlantStageLabel } from '../utils/plantUtils';
 import { mockTopics, ACTIVE_TOPIC_ID, MONTHLY_TARGET_DAYS } from '../data/mockData';
 import { Routine } from '../types';
+import { extractYouTubeId, getYouTubeThumbnailUrl, openYouTubeUrl } from '../services/youtube';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'RoutineList'>;
@@ -41,7 +42,6 @@ export default function RoutineListScreen() {
   const weekDates = useMemo(() => getWeekDates(), []);
   const weekLabel = useMemo(() => formatWeekRangeKo(), []);
 
-  // Find the primary routine for a given date
   const getRoutineForDate = (date: Date): Routine | null => {
     const day = date.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
     return routines.find(r => r.isActive && r.scheduledDays.includes(day)) ?? null;
@@ -97,6 +97,62 @@ export default function RoutineListScreen() {
             const completed = routine ? isRoutineCompleted(routine.id, dateStr) : false;
             const isRest = !routine;
 
+            // Resolve thumbnail for today's routine
+            const videoId = today && routine?.youtubeUrl
+              ? extractYouTubeId(routine.youtubeUrl)
+              : null;
+            const thumbnailUrl = videoId ? getYouTubeThumbnailUrl(videoId) : null;
+
+            // Today with a YouTube video → featured card layout
+            if (today && thumbnailUrl) {
+              return (
+                <TouchableOpacity
+                  key={dateStr}
+                  style={styles.featuredCard}
+                  onPress={() => routine && navigation.navigate('Play', { routineId: routine.id })}
+                  activeOpacity={0.88}
+                >
+                  {/* Thumbnail */}
+                  <TouchableOpacity
+                    style={styles.thumbnailWrap}
+                    onPress={() => routine?.youtubeUrl && openYouTubeUrl(routine.youtubeUrl)}
+                    activeOpacity={0.85}
+                  >
+                    <Image
+                      source={{ uri: thumbnailUrl }}
+                      style={styles.thumbnail}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.playOverlay}>
+                      <View style={styles.playBadge}>
+                        <Text style={styles.playBadgeText}>▶</Text>
+                      </View>
+                    </View>
+                    <View style={styles.todayTag}>
+                      <Text style={styles.todayTagText}>오늘</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Row info */}
+                  <View style={styles.featuredRow}>
+                    <View style={[styles.dayCircle, styles.dayCircleToday]}>
+                      <Text style={[styles.dayCircleText, styles.dayCircleTextActive]}>{dayKo}</Text>
+                    </View>
+                    <View style={styles.routineInfo}>
+                      <Text style={[styles.routineName, completed && styles.routineNameDone]}>
+                        {routine!.title}
+                      </Text>
+                      <Text style={styles.routineDuration}>{routine!.durationMin}분</Text>
+                    </View>
+                    <View style={[styles.checkbox, completed && styles.checkboxDone]}>
+                      {completed && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+
+            // Default compact row
             return (
               <TouchableOpacity
                 key={dateStr}
@@ -105,7 +161,6 @@ export default function RoutineListScreen() {
                 activeOpacity={routine ? 0.8 : 1}
                 disabled={!routine}
               >
-                {/* Day circle */}
                 <View style={[
                   styles.dayCircle,
                   today && styles.dayCircleToday,
@@ -119,7 +174,6 @@ export default function RoutineListScreen() {
                   </Text>
                 </View>
 
-                {/* Routine info */}
                 <View style={styles.routineInfo}>
                   {isRest ? (
                     <Text style={styles.restLabel}>휴식</Text>
@@ -133,7 +187,15 @@ export default function RoutineListScreen() {
                   )}
                 </View>
 
-                {/* Checkbox */}
+                {/* Small thumbnail for non-today rows that have a YouTube URL */}
+                {!isRest && routine?.youtubeUrl && !today && (() => {
+                  const vid = extractYouTubeId(routine.youtubeUrl);
+                  const thumb = vid ? getYouTubeThumbnailUrl(vid) : null;
+                  return thumb ? (
+                    <Image source={{ uri: thumb }} style={styles.smallThumbnail} resizeMode="cover" />
+                  ) : null;
+                })()}
+
                 {!isRest && (
                   <View style={[styles.checkbox, completed && styles.checkboxDone]}>
                     {completed && <Text style={styles.checkmark}>✓</Text>}
@@ -215,6 +277,67 @@ const styles = StyleSheet.create({
 
   /* Day list */
   dayList: { gap: Spacing.xs },
+
+  /* --- Featured card (today + thumbnail) --- */
+  featuredCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    borderWidth: 1.5,
+    borderColor: Colors.primary400,
+    overflow: 'hidden',
+  },
+  thumbnailWrap: {
+    height: 180,
+    width: '100%',
+    backgroundColor: Colors.primary700,
+    position: 'relative',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  playBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playBadgeText: {
+    fontSize: 20,
+    color: Colors.primary700,
+    marginLeft: 3,
+  },
+  todayTag: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    backgroundColor: Colors.primary600,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 3,
+  },
+  todayTagText: {
+    ...Typography.caption2,
+    color: Colors.textInverse,
+    fontWeight: '700',
+  },
+  featuredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+  },
+
+  /* --- Default compact row --- */
   dayRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,6 +352,14 @@ const styles = StyleSheet.create({
   dayRowToday: {
     borderColor: Colors.primary400,
     backgroundColor: Colors.primary100,
+  },
+
+  /* Small thumbnail (non-today rows) */
+  smallThumbnail: {
+    width: 48,
+    height: 32,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.borderLight,
   },
 
   /* Day circle */

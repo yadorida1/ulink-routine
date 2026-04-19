@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,6 +24,7 @@ import {
   MONTHLY_TARGET_DAYS,
 } from '../data/mockData';
 import LoginBanner from '../components/LoginBanner';
+import { extractYouTubeId, getYouTubeThumbnailUrl, openYouTubeUrl } from '../services/youtube';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -39,6 +41,9 @@ export default function HomeScreen() {
   const plantEmoji = getPlantEmoji(plant.stage, plant.state);
   const stageLabel = getPlantStageLabel(plant.stage);
   const progressPct = plant.daysCompletedInCycle / MONTHLY_TARGET_DAYS;
+
+  const todayVideoId = todayRoutine?.youtubeUrl ? extractYouTubeId(todayRoutine.youtubeUrl) : null;
+  const todayThumbnailUrl = todayVideoId ? getYouTubeThumbnailUrl(todayVideoId) : null;
 
   const handleAddTopic = () => {
     const action = canAddTopic();
@@ -76,43 +81,69 @@ export default function HomeScreen() {
           onPress={() => navigation.navigate('RoutineList', { topicId: ACTIVE_TOPIC_ID })}
           activeOpacity={0.9}
         >
-          {/* Top: topic + routine info */}
-          <View style={styles.mainCardTop}>
-            <View style={styles.mainCardInfo}>
-              <Text style={styles.topicLabel}>{activeTopic?.name ?? '루틴'}</Text>
-              <Text style={styles.routineTitle} numberOfLines={1}>
-                {todayRoutine ? todayRoutine.title : '오늘 루틴 없음'}
+          {/* YouTube thumbnail banner for today's routine */}
+          {todayThumbnailUrl && (
+            <TouchableOpacity
+              style={styles.thumbnailBanner}
+              onPress={() => todayRoutine?.youtubeUrl && openYouTubeUrl(todayRoutine.youtubeUrl)}
+              activeOpacity={0.85}
+            >
+              <Image
+                source={{ uri: todayThumbnailUrl }}
+                style={styles.thumbnailImage}
+                resizeMode="cover"
+              />
+              <View style={styles.thumbnailOverlay}>
+                <View style={styles.playCircle}>
+                  <Text style={styles.playIcon}>▶</Text>
+                </View>
+              </View>
+              <View style={styles.thumbnailLabel}>
+                <Text style={styles.thumbnailLabelText}>오늘의 루틴 영상</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Card body (padded) */}
+          <View style={styles.mainCardBody}>
+            {/* Top: topic + routine info */}
+            <View style={styles.mainCardTop}>
+              <View style={styles.mainCardInfo}>
+                <Text style={styles.topicLabel}>{activeTopic?.name ?? '루틴'}</Text>
+                <Text style={styles.routineTitle} numberOfLines={1}>
+                  {todayRoutine ? todayRoutine.title : '오늘 루틴 없음'}
+                </Text>
+              </View>
+              {/* Plant illustration */}
+              <View style={styles.plantIllustration}>
+                <Text style={styles.plantEmoji}>{plantEmoji}</Text>
+              </View>
+            </View>
+
+            {/* Streak badge */}
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakBadgeText}>성장 {plant.streak}일째</Text>
+            </View>
+
+            {/* Water / progress gauge */}
+            <View style={styles.waterGauge}>
+              <Text style={styles.waterIcon}>💧</Text>
+              <View style={styles.waterBarTrack}>
+                <View style={[styles.waterBarFill, { width: `${progressPct * 100}%` }]} />
+              </View>
+              <Text style={styles.waterCount}>
+                {plant.daysCompletedInCycle} / {MONTHLY_TARGET_DAYS}일
               </Text>
             </View>
-            {/* Plant illustration area */}
-            <View style={styles.plantIllustration}>
-              <Text style={styles.plantEmoji}>{plantEmoji}</Text>
-            </View>
-          </View>
 
-          {/* Streak badge */}
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakBadgeText}>성장 {plant.streak}일째</Text>
-          </View>
-
-          {/* Water / progress gauge */}
-          <View style={styles.waterGauge}>
-            <Text style={styles.waterIcon}>💧</Text>
-            <View style={styles.waterBarTrack}>
-              <View style={[styles.waterBarFill, { width: `${progressPct * 100}%` }]} />
+            {/* Plant state footer */}
+            <View style={styles.mainCardFooter}>
+              <View>
+                <Text style={styles.plantStateLabel}>식물 상태</Text>
+                <Text style={styles.plantStateName}>{stageLabel} 단계</Text>
+              </View>
+              <Text style={styles.detailLink}>자세히 보기  {'>'}</Text>
             </View>
-            <Text style={styles.waterCount}>
-              {plant.daysCompletedInCycle} / {MONTHLY_TARGET_DAYS}일
-            </Text>
-          </View>
-
-          {/* Plant state footer */}
-          <View style={styles.mainCardFooter}>
-            <View>
-              <Text style={styles.plantStateLabel}>식물 상태</Text>
-              <Text style={styles.plantStateName}>{stageLabel} 단계</Text>
-            </View>
-            <Text style={styles.detailLink}>자세히 보기  {'>'}</Text>
           </View>
         </TouchableOpacity>
 
@@ -218,10 +249,58 @@ const styles = StyleSheet.create({
   mainCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
-    padding: Spacing.base,
     borderWidth: 1,
     borderColor: Colors.border,
     marginBottom: Spacing.md,
+    overflow: 'hidden',
+    gap: Spacing.md,
+  },
+
+  /* Thumbnail banner */
+  thumbnailBanner: {
+    height: 160,
+    width: '100%',
+    position: 'relative',
+    backgroundColor: Colors.primary700,
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  playCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playIcon: {
+    fontSize: 16,
+    color: Colors.primary700,
+    marginLeft: 3,
+  },
+  thumbnailLabel: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    left: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 3,
+  },
+  thumbnailLabelText: {
+    ...Typography.caption2,
+    color: Colors.textInverse,
+  },
+  mainCardBody: {
+    padding: Spacing.base,
     gap: Spacing.md,
   },
   mainCardTop: {
