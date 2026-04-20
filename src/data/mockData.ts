@@ -117,6 +117,19 @@ export const mockRoutines: Routine[] = [
     order: 6,
     createdAt: '2024-01-01T00:00:00Z',
   },
+  {
+    id: 'routine_sun',
+    topicId: 'topic_exercise',
+    title: '전신 스트레칭',
+    description: '부드럽게 몸을 풀어볼까요?',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    durationMin: 20,
+    difficulty: 'easy',
+    scheduledDays: [0], // Sunday
+    isActive: true,
+    order: 7,
+    createdAt: '2024-01-01T00:00:00Z',
+  },
 ];
 
 export const mockRoutineProgress: RoutineProgress[] = [
